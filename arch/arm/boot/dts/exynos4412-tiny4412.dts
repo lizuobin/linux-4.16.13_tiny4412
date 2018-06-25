@@ -69,6 +69,74 @@
 			clock-frequency = <24000000>;
 		};
 	};
+    
+    lcd {
+        compatible = "samsung,dpi";
+        
+        panel-width-mm = <90>;
+        panel-height-mm = <154>;
+        
+        display-timings {
+            timing {
+                clock-frequency = <33000000>;
+                hactive = <800>;
+                vactive = <480>;
+                hback-porch = <46>;
+                hfront-porch = <210>;
+                vback-porch = <20>;
+                vfront-porch = <22>;
+                hsync-len = <2>;
+                vsync-len = <1>;
+                hsync-active = <40>;
+                vsync-active = <22>;
+                de-active = <0>;
+                pixelclk-active = <0>;
+            };
+        };
+        port {
+            lcd_ep: endpoint {
+                remote-endpoint = <&fimd_dpi_ep>;
+            };
+        };
+    };
+};
+
+&i2c_1 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	samsung,i2c-sda-delay = <100>;
+	samsung,i2c-max-bus-freq = <20000>;
+	pinctrl-0 = <&i2c1_bus>;
+	pinctrl-names = "default";
+	status = "okay";
+
+    touchscreen@38 {
+		compatible = "edt,edt-ft5x06";
+		reg = <0x38>;
+		interrupt-parent = <&gpx1>;
+		interrupts = <6 IRQ_TYPE_EDGE_FALLING>;
+		touchscreen-size-x = <800>;
+		touchscreen-size-y = <480>;
+		touchscreen-inverted-x;
+		touchscreen-inverted-y;
+	};
+};
+
+&fimd {
+	pinctrl-0 = <&lcd_clk &lcd_data24>;
+	pinctrl-names = "default";
+	status = "okay";
+    samsung,invert-vden;
+	samsung,invert-vclk;
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+    port@3 {
+		reg = <3>;
+		fimd_dpi_ep: endpoint {
+			remote-endpoint = <&lcd_ep>;
+		};
+	};
 };
 
 &rtc {
