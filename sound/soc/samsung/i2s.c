@@ -701,7 +701,8 @@ static int i2s_hw_params(struct snd_pcm_substream *substream,
 	struct i2s_dai *i2s = to_info(dai);
 	u32 mod, mask = 0, val = 0;
 	unsigned long flags;
-
+	unsigned long epll_out_rate;
+	struct clk *fout_epll;
 	WARN_ON(!pm_runtime_active(dai->dev));
 
 	if (!is_secondary(i2s))
@@ -780,6 +781,42 @@ static int i2s_hw_params(struct snd_pcm_substream *substream,
 	snd_soc_dai_init_dma_data(dai, &i2s->dma_playback, &i2s->dma_capture);
 
 	i2s->frmclk = params_rate(params);
+	
+	switch (i2s->frmclk) {
+		case 8000:
+		case 12000:
+		case 16000:
+		case 24000:
+		case 32000:
+		case 48000:
+		case 64000:
+		case 96000:
+			epll_out_rate = 49151992;
+			break;
+		case 11025:
+		case 22050:
+		case 44100:
+		case 88200:
+			epll_out_rate = 67737602;
+			break;
+		default:
+			printk(KERN_ERR "%s:%d Sampling Rate %u not supported!\n",
+					__func__, __LINE__, i2s->frmclk);
+			return -EINVAL;
+	}
+
+	fout_epll = devm_clk_get(dai->dev, "fout_epll");
+	if(IS_ERR(fout_epll)){
+		printk("get fout_epll err\n");
+	}	
+
+	if (clk_get_rate(fout_epll) != epll_out_rate)
+		if(clk_set_rate(fout_epll, epll_out_rate) != 0){
+			printk("set epll rate err\n");
+		}
+
+	i2s_set_sysclk(dai, SAMSUNG_I2S_CDCLK, 0, SND_SOC_CLOCK_OUT);
+	i2s->rclk_srcrate = clk_get_rate(i2s->op_clk);
 
 	return 0;
 }

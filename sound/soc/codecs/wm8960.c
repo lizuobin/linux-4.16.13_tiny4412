@@ -1396,6 +1396,7 @@ static int wm8960_i2c_probe(struct i2c_client *i2c,
 	struct wm8960_data *pdata = dev_get_platdata(&i2c->dev);
 	struct wm8960_priv *wm8960;
 	int ret;
+	int retry;
 
 	wm8960 = devm_kzalloc(&i2c->dev, sizeof(struct wm8960_priv),
 			      GFP_KERNEL);
@@ -1417,12 +1418,19 @@ static int wm8960_i2c_probe(struct i2c_client *i2c,
 	else if (i2c->dev.of_node)
 		wm8960_set_pdata_from_of(i2c, &wm8960->pdata);
 
-	ret = wm8960_reset(wm8960->regmap);
-	if (ret != 0) {
-		dev_err(&i2c->dev, "Failed to issue reset\n");
-		return ret;
+	for (retry = 0; retry < 5; retry++){
+		ret = wm8960_reset(wm8960->regmap);
+		if (ret != 0) {
+			if (retry == 5){
+				dev_err(&i2c->dev, "Failed to issue reset\n");
+				return ret;
+			}
+		}
+		else{
+			break;
+		}
 	}
-
+	
 	if (wm8960->pdata.shared_lrclk) {
 		ret = regmap_update_bits(wm8960->regmap, WM8960_ADDCTL2,
 					 0x4, 0x4);
